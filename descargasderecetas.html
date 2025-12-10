@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Descargas - Archivos PDF</title>
+<style>
+  body{font-family:Arial, Helvetica, sans-serif;background:#f3f4f6;color:#111;margin:0;padding:40px;display:flex;justify-content:center}
+  .card{background:#fff;border-radius:12px;padding:28px;box-shadow:0 6px 20px rgba(0,0,0,.08);max-width:720px;width:100%}
+  h1{margin:0 0 10px;font-size:22px}
+  p{margin:0 0 18px;color:#444}
+  .btn{display:inline-block;padding:10px 16px;margin:6px;border-radius:8px;text-decoration:none;color:#fff;background:#1976d2;border:none;cursor:pointer;font-weight:600}
+  .btn.secondary{background:#6b7280}
+  .file-list{margin-top:12px}
+  .file-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
+  .fname{font-size:15px;color:#222}
+  .small{font-size:13px;color:#666}
+  .note{margin-top:14px;color:#555;font-size:13px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Gracias por tu compra</h1>
+    <p>Haz clic en un archivo para descargarlo. Si el PDF se abre en el navegador, usa el botón derecho → "Guardar como" o usa el botón "Forzar descarga".</p>
+
+    <div style="margin-bottom:12px">
+      <button id="downloadAll" class="btn">🔽 Descargar todo (forzar)</button>
+      <button id="openAll" class="btn secondary" title="Abrir en nuevas pestañas">🔗 Abrir todo</button>
+    </div>
+
+    <div class="file-list" id="fileList">
+      <!-- Filas generadas por JS -->
+    </div>
+
+    <p class="note">Nota: si por restricciones CORS el navegador no permite forzar la descarga, la página abrirá el PDF en una nueva pestaña como respaldo para que puedas guardarlo manualmente.</p>
+  </div>
+
+<script>
+(() => {
+  // Aquí tus enlaces (tal cual los mandaste)
+  const files = [
+    "https://files.catbox.moe/opybmi.pdf",
+    "https://files.catbox.moe/pqkypy.pdf",
+    "https://files.catbox.moe/7rhux5.pdf",
+    "https://files.catbox.moe/nqby9n.pdf",
+    "https://files.catbox.moe/2x1c7x.pdf"
+  ];
+
+  const fileList = document.getElementById('fileList');
+
+  function getNameFromUrl(url){
+    try {
+      const u = new URL(url);
+      const path = u.pathname;
+      const name = path.split('/').pop() || u.hostname;
+      return decodeURIComponent(name);
+    } catch(e) {
+      return url;
+    }
+  }
+
+  function makeRow(url, idx){
+    const row = document.createElement('div');
+    row.className = 'file-row';
+
+    const left = document.createElement('div');
+    left.innerHTML = `<div class="fname">${getNameFromUrl(url)}</div><div class="small">${url}</div>`;
+
+    const right = document.createElement('div');
+
+    // Botón forzar descarga (usa fetch + blob)
+    const forceBtn = document.createElement('button');
+    forceBtn.className = 'btn';
+    forceBtn.textContent = 'Forzar descarga';
+    forceBtn.onclick = async () => {
+      forceBtn.disabled = true;
+      forceBtn.textContent = 'Descargando...';
+      try {
+        await fetchAndSave(url, getNameFromUrl(url));
+      } catch(err) {
+        // fallback: abrir en nueva pestaña
+        console.warn('Forzar descarga falló, abriendo en nueva pestaña:', err);
+        window.open(url, '_blank');
+      } finally {
+        forceBtn.disabled = false;
+        forceBtn.textContent = 'Forzar descarga';
+      }
+    };
+
+    // Enlace directo (abre en nueva pestaña)
+    const openLink = document.createElement('a');
+    openLink.className = 'btn secondary';
+    openLink.style.marginLeft = '8px';
+    openLink.textContent = 'Abrir';
+    openLink.href = url;
+    openLink.target = '_blank';
+    openLink.rel = 'noopener noreferrer';
+
+    right.appendChild(forceBtn);
+    right.appendChild(openLink);
+
+    row.appendChild(left);
+    row.appendChild(right);
+    return row;
+  }
+
+  // Crear filas
+  files.forEach((url, i) => fileList.appendChild(makeRow(url, i)));
+
+  // fetch y descargar Blob con filename
+  async function fetchAndSave(url, filename){
+    // intenta obtener el recurso como blob
+    const resp = await fetch(url, {cache: "no-store"});
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename || 'archivo';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // liberar memoria
+    setTimeout(()=> URL.revokeObjectURL(blobUrl), 2000);
+  }
+
+  // Descargar todo (secuencia con pequeña pausa)
+  document.getElementById('downloadAll').addEventListener('click', async function(){
+    this.disabled = true;
+    this.textContent = 'Descargando todo...';
+    for(let i=0; i<files.length; i++){
+      try{
+        await fetchAndSave(files[i], getNameFromUrl(files[i]));
+      }catch(e){
+        console.warn('Error descarga ' + files[i] + ':', e);
+        // fallback: abrir la URL en nueva pestaña para que el usuario descargue manualmente
+        window.open(files[i], '_blank');
+      }
+      // espera breve para evitar que el navegador bloquee muchas descargas a la vez
+      await new Promise(r => setTimeout(r, 800));
+    }
+    this.disabled = false;
+    this.textContent = '🔽 Descargar todo (forzar)';
+  });
+
+  // Abrir todo (en nuevas pestañas)
+  document.getElementById('openAll').addEventListener('click', function(){
+    files.forEach(url => window.open(url, '_blank'));
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Descargando Archivos...</title>
+</head>
+<body>
+<h2>Gracias por tu compra. Tus archivos se están descargando...</h2>
+
+<script>
+const urls = [
+    "https://drive.google.com/uc?export=download&id=1kqHoEcaT1Mqz-NZOAC-4VrcQPxrdQcA0",
+    "https://drive.google.com/uc?export=download&id=10MW7bhqyfMFEXOFTPH4ukiwb0zN1ltYE",
+    "https://drive.google.com/uc?export=download&id=1bLsHSkyQ7ok6fKCQLg7AeW5U2uFuQWTH",
+    "https://drive.google.com/uc?export=download&id=1xYwO5fHFsE5jcs_QuDTTPdf3LDrF-2Rp",
+    "https://drive.google.com/uc?export=download&id=1IejUDiyIOWpmY_lpOKpf5BiCJIR1Mmr6"
+];
+
+urls.forEach(url => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.setAttribute("download", "");
+    document.body.appendChild(a);
+    a.click();
+});
+</script>
+
+</body>
+</html>
